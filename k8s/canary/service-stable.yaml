@@ -1,0 +1,14 @@
+# Stable track
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-canary-stable
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-canary
+    track: stable
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

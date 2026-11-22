@@ -1,0 +1,14 @@
+# Variant A
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-ab-a
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-ab
+    variant: a
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

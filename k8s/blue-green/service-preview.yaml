@@ -1,0 +1,14 @@
+# PREVIEW service: always points at the idle slot so a release can be tested before the switch.
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-bg-preview
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-bg
+    slot: green
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

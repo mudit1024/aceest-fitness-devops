@@ -1,0 +1,13 @@
+# Stable entry point for the rolling-update environment
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-rolling
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-rolling
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
