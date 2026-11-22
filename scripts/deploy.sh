@@ -15,7 +15,7 @@ CANARY_PAUSE="${CANARY_PAUSE:-20}"
 
 on_failure() {
   log "Release of ${IMAGE} with strategy '${STRATEGY}' FAILED - rolling back"
-  "$(dirname "$0")/rollback.sh" "$STRATEGY" || true
+  bash "$(dirname "$0")/rollback.sh" "$STRATEGY" || true
   exit 1
 }
 
@@ -109,7 +109,7 @@ case "$STRATEGY" in
   shadow)                 fn=deploy_shadow ;;
   all)
     for s in rolling blue-green canary ab-testing shadow; do
-      "$0" "$s" "$IMAGE"
+      bash "$0" "$s" "$IMAGE"
     done
     exit 0
     ;;

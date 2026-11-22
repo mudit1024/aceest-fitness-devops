@@ -46,7 +46,7 @@ case "$STRATEGY" in
     undo aceest-shadow-candidate
     ;;
   all)
-    for s in rolling blue-green canary ab-testing shadow; do "$0" "$s"; done
+    for s in rolling blue-green canary ab-testing shadow; do bash "$0" "$s"; done
     ;;
   *) fail "unknown strategy '${STRATEGY}'" ;;
 esac
