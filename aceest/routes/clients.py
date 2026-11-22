@@ -2,7 +2,7 @@
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from aceest import models
-from aceest.fitness import ValidationError
+from aceest.fitness import WORKOUT_TYPES, ValidationError, calculate_bmi
 from aceest.programs import get_program, list_programs
 
 bp = Blueprint("clients", __name__)
@@ -24,14 +24,24 @@ def clients_page():
 
 @bp.route("/clients/<name>", methods=["GET"])
 def client_page(name):
-    client = models.get_client(name)
-    if client is None:
+    summary = models.client_summary(name)
+    if summary is None:
         abort(404)
+    client = summary["client"]
+    try:
+        bmi = calculate_bmi(client["height"], client["weight"])
+    except ValidationError:
+        bmi = None
     return render_template(
         "client.html",
         client=client,
+        summary=summary,
+        bmi=bmi,
         program=get_program(client["program"]),
         progress=models.list_progress(name),
+        metrics=models.list_metrics(name),
+        workouts=models.list_workouts(name),
+        workout_types=WORKOUT_TYPES,
         programs=list_programs(),
     )
 

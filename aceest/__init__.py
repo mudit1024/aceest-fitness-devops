@@ -14,12 +14,13 @@ def create_app(config_object=Config, **overrides):
     app.config.update(overrides)
 
     from aceest import db
-    from aceest.routes import clients, main
+    from aceest.routes import clients, main, tracking
 
     csrf.init_app(app)
     db.init_db(app)
     app.register_blueprint(main.bp)
     app.register_blueprint(clients.bp)
+    app.register_blueprint(tracking.bp)
 
     @app.context_processor
     def inject_build_info():

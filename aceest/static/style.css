@@ -21,3 +21,5 @@ table { width: 100%; border-collapse: collapse; } th, td { text-align: left; pad
 .bar-row { display: grid; grid-template-columns: 130px 1fr 48px; gap: 8px; align-items: center; margin: 4px 0; font-size: 0.9rem; }
 .bar { background: #333; height: 12px; border-radius: 6px; overflow: hidden; }
 .bar > div { background: var(--gold); height: 100%; }
+.muted { color: var(--muted); }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }

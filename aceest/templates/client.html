@@ -11,6 +11,16 @@
     <p>Program  : {{ program.name if program else '-' }}</p>
     <p>Calories : {{ client.calories or '-' }} kcal/day</p>
     <p>Goals    : {% if client.target_weight %}Target Weight {{ client.target_weight }} kg; {% endif %}{% if client.target_adherence %}Target Adherence {{ client.target_adherence }}%{% endif %}</p>
+    {% if bmi %}<p>BMI      : {{ bmi.bmi }} ({{ bmi.category }})</p><p class="muted">{{ bmi.risk }}</p>{% endif %}
+  </div>
+  <div class="card mono">
+    <h2>Progress Summary</h2>
+    <p>Weeks logged      : {{ summary.weeks_logged }}</p>
+    <p>Average adherence : {{ summary.average_adherence }}%</p>
+    <p>Workouts logged   : {{ summary.workouts_logged }}</p>
+    <p>Training minutes  : {{ summary.training_minutes }}</p>
+    {% set m = summary.last_metric %}
+    <p>Last metrics      : {% if m %}{{ m.date }} | {{ m.weight or '-' }} kg, Waist {{ m.waist or '-' }} cm, Bodyfat {{ m.bodyfat or '-' }}%{% else %}None{% endif %}</p>
   </div>
   <div class="card">
     <h2>Weekly Adherence</h2>
@@ -20,15 +30,55 @@
       {% endfor %}
     {% else %}<p>No progress logged yet.</p>{% endif %}
     <form method="post" action="{{ url_for('clients.client_progress_form', name=client.name) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="adherence">Adherence this week (%)</label>
       <input id="adherence" name="adherence" type="number" min="0" max="100" required>
       <button type="submit">Log Progress</button>
     </form>
   </div>
+  <div class="card">
+    <h2>Body Metrics</h2>
+    {% if metrics %}
+    <table><thead><tr><th>Date</th><th>Weight</th><th>Waist</th><th>Bodyfat</th></tr></thead><tbody>
+      {% for m in metrics %}<tr><td>{{ m.date }}</td><td>{{ m.weight or '-' }}</td><td>{{ m.waist or '-' }}</td><td>{{ m.bodyfat or '-' }}</td></tr>{% endfor %}
+    </tbody></table>
+    {% endif %}
+    <form method="post" action="{{ url_for('tracking.metrics_form', name=client.name) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="m_date">Date</label><input id="m_date" name="date" type="date">
+      <label for="m_weight">Weight (kg)</label><input id="m_weight" name="weight" type="number" step="0.1">
+      <label for="m_waist">Waist (cm)</label><input id="m_waist" name="waist" type="number" step="0.1">
+      <label for="m_bodyfat">Bodyfat (%)</label><input id="m_bodyfat" name="bodyfat" type="number" step="0.1">
+      <button type="submit">Log Metrics</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Workouts</h2>
+    {% if workouts %}
+    <table><thead><tr><th>Date</th><th>Type</th><th>Min</th><th>Exercises</th></tr></thead><tbody>
+      {% for w in workouts %}<tr><td>{{ w.date }}</td><td>{{ w.workout_type }}</td><td>{{ w.duration_min or '-' }}</td>
+        <td>{% for e in w.exercises %}{{ e.name }} {{ e.sets or '' }}x{{ e.reps or '' }}{% if e.weight %} @{{ e.weight }}kg{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}
+    </tbody></table>
+    {% endif %}
+    <form method="post" action="{{ url_for('tracking.workouts_form', name=client.name) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="w_date">Date</label><input id="w_date" name="date" type="date">
+      <label for="w_type">Type</label>
+      <select id="w_type" name="workout_type">{% for t in workout_types %}<option>{{ t }}</option>{% endfor %}</select>
+      <label for="w_duration">Duration (min)</label><input id="w_duration" name="duration_min" type="number" value="60">
+      <label for="w_notes">Notes</label><input id="w_notes" name="notes">
+      <label for="e_name">Exercise (optional)</label><input id="e_name" name="exercise_name" placeholder="e.g. Back Squat">
+      <div class="grid3">
+        <input aria-label="Sets" name="exercise_sets" type="number" placeholder="Sets">
+        <input aria-label="Reps" name="exercise_reps" type="number" placeholder="Reps">
+        <input aria-label="Weight" name="exercise_weight" type="number" step="0.5" placeholder="kg">
+      </div>
+      <button type="submit">Log Workout</button>
+    </form>
+  </div>
   {% if program %}
   <div class="card">
-    <h2>Workout</h2>
+    <h2>Workout Plan</h2>
     <ul class="plain">{% for line in program.workout %}<li>{{ line }}</li>{% endfor %}</ul>
     <h2>Diet</h2>
     <ul class="plain">{% for line in program.diet %}<li>{{ line }}</li>{% endfor %}</ul>
