@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ program.name }} - ACEest{% endblock %}
+{% block content %}
+<h1 style="color: {{ program.color }}">{{ program.name }}</h1>
+<section class="grid">
+  <div class="card">
+    <h2>Weekly Workout Chart</h2>
+    <ul class="plain">{% for line in program.workout %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+  <div class="card">
+    <h2>Daily Nutrition Plan (Tamil Nadu Context)</h2>
+    <ul class="plain">{% for line in program.diet %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endblock %}

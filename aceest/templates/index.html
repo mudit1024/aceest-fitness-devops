@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+  <div class="card">
+    <h2>Programs</h2>
+    <ul class="plain">
+      {% for p in programs %}
+        <li><a href="{{ url_for('main.program_page', code=p.code) }}">{{ p.name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card mono">
+    <h2>Site Metrics</h2>
+    <p>CAPACITY: {{ metrics.capacity_users }} Users</p>
+    <p>AREA: {{ "{:,}".format(metrics.area_sq_ft) }} sq ft</p>
+    <p>BREAK-EVEN: {{ metrics.break_even_members }} Members</p>
+  </div>
+</section>
+{% endblock %}
