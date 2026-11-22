@@ -26,6 +26,36 @@ SCHEMA = [
         adherence INTEGER NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS workouts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        workout_type TEXT NOT NULL,
+        duration_min INTEGER,
+        notes TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS exercises (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        workout_id INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        sets INTEGER,
+        reps INTEGER,
+        weight REAL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        weight REAL,
+        waist REAL,
+        bodyfat REAL
+    )
+    """,
 ]
 
 

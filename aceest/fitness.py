@@ -34,3 +34,24 @@ def validate_adherence(value):
     if not 0 <= adherence <= 100:
         raise ValidationError("adherence must be between 0 and 100")
     return adherence
+
+
+BMI_BANDS = (
+    (18.5, "Underweight", "Potential nutrient deficiency, low energy."),
+    (25.0, "Normal", "Low risk if active and strong."),
+    (30.0, "Overweight", "Moderate risk; focus on adherence and progressive activity."),
+    (float("inf"), "Obese", "Higher risk; prioritize fat loss, consistency, and supervision."),
+)
+
+WORKOUT_TYPES = ("Strength", "Hypertrophy", "Cardio", "Mobility")
+
+
+def calculate_bmi(height_cm, weight_kg):
+    """Return BMI rounded to one decimal place with its category and risk note."""
+    height = _positive_number(height_cm, "height", 300)
+    weight = _positive_number(weight_kg, "weight", 400)
+    bmi = round(weight / (height / 100.0) ** 2, 1)
+    for upper, category, risk in BMI_BANDS:
+        if bmi < upper:
+            return {"bmi": bmi, "category": category, "risk": risk}
+    raise AssertionError("unreachable")  # pragma: no cover
