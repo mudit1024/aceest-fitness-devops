@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Calorie Calculator - ACEest{% endblock %}
+{% block content %}
+<section class="grid">
+  <form class="card" method="post">
+    <h2>Client Profile</h2>
+    <label for="name">Name</label><input id="name" name="name" value="{{ form.name or '' }}" required>
+    <label for="age">Age</label><input id="age" name="age" type="number" min="1" max="120" value="{{ form.age or '' }}">
+    <label for="weight">Weight (kg)</label><input id="weight" name="weight" type="number" step="0.1" value="{{ form.weight or '' }}" required>
+    <label for="program">Program</label>
+    <select id="program" name="program" required>
+      {% for p in programs %}<option value="{{ p.code }}" {% if form.program == p.code %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+    </select>
+    <label for="adherence">Weekly adherence (%)</label><input id="adherence" name="adherence" type="number" min="0" max="100" value="{{ form.adherence or 0 }}">
+    <button type="submit">Calculate</button>
+  </form>
+  {% if result %}
+  <div class="card">
+    <h2>{{ result.name }} &mdash; {{ result.program.name }}</h2>
+    <p><strong>Estimated Calories: {{ result.calories }} kcal</strong></p>
+    <p>Adherence: {{ result.adherence }}%</p>
+    <h2>Workout</h2>
+    <ul class="plain">{% for line in result.program.workout %}<li>{{ line }}</li>{% endfor %}</ul>
+    <h2>Diet</h2>
+    <ul class="plain">{% for line in result.program.diet %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

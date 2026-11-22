@@ -21,6 +21,7 @@ PROGRAMS = {
             "Target: 2,000 kcal",
         ],
         "color": "#e74c3c",
+        "calorie_factor": 22,
     },
     "MG": {
         "name": "Muscle Gain (MG)",
@@ -39,6 +40,7 @@ PROGRAMS = {
             "Target: 3,200 kcal",
         ],
         "color": "#2ecc71",
+        "calorie_factor": 35,
     },
     "BG": {
         "name": "Beginner (BG)",
@@ -51,6 +53,7 @@ PROGRAMS = {
             "Protein: 120g/day",
         ],
         "color": "#3498db",
+        "calorie_factor": 26,
     },
 }
 

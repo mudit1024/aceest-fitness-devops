@@ -33,3 +33,25 @@ def test_version_reports_track(client, app):
     data = client.get("/version").get_json()
     assert data["version"] == app.config["APP_VERSION"]
     assert data["track"] == "stable"
+
+
+def test_calculator_get(client):
+    assert client.get("/calculator").status_code == 200
+
+
+def test_calculator_post_shows_calories(client):
+    resp = client.post("/calculator", data={"name": "Arun", "weight": "80", "program": "MG", "adherence": "75"})
+    assert resp.status_code == 200
+    assert b"Estimated Calories: 2800 kcal" in resp.data
+    assert b"Adherence: 75%" in resp.data
+
+
+def test_calculator_post_validation_error(client):
+    resp = client.post("/calculator", data={"name": "", "weight": "80", "program": "MG"})
+    assert b"name is required" in resp.data
+
+
+def test_api_calories(client):
+    expected = {"program": "FL", "calories": 1760}
+    assert client.get("/api/calories?weight=80&program=fl").get_json() == expected
+    assert client.get("/api/calories?weight=-1&program=fl").status_code == 400
