@@ -74,6 +74,20 @@ SCHEMA = [
 ]
 
 
+# Columns added after the original schema; applied with ALTER TABLE so that
+# databases created by older releases are upgraded in place.
+MIGRATIONS = (
+    ("clients", "membership_end", "ALTER TABLE clients ADD COLUMN membership_end TEXT"),
+)
+
+
+def _migrate(conn):
+    for table, column, statement in MIGRATIONS:
+        existing = {row[1] for row in conn.execute("SELECT * FROM pragma_table_info(?)", (table,))}
+        if column not in existing:
+            conn.execute(statement)
+
+
 def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(current_app.config["DATABASE_PATH"])
@@ -97,5 +111,6 @@ def init_db(app):
     with sqlite3.connect(path) as conn:
         for statement in SCHEMA:
             conn.execute(statement)
+        _migrate(conn)
         seed_admin(conn, app)
     app.teardown_appcontext(close_db)

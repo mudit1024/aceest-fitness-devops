@@ -46,6 +46,7 @@ def client_page(name):
         workouts=models.list_workouts(name),
         plan=models.latest_plan(name),
         levels=LEVELS,
+        membership=models.get_membership(name),
         workout_types=WORKOUT_TYPES,
         programs=list_programs(),
     )

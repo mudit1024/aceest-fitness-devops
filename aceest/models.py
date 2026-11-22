@@ -237,3 +237,63 @@ def latest_plan(name):
     if row is None:
         return None
     return {**json.loads(row["plan_json"]), "created_at": row["created_at"]}
+
+
+# ---------- membership (release 3.2) ----------
+MEMBERSHIP_DAYS_PER_MONTH = 30
+
+
+def membership_status(end_date, today=None):
+    if not end_date:
+        return "None"
+    today = today or date.today()
+    return "Active" if date.fromisoformat(end_date) >= today else "Expired"
+
+
+def get_membership(name, today=None):
+    client = get_client(name)
+    if client is None:
+        return None
+    end = client.get("membership_end")
+    return {"client": name, "membership_end": end, "status": membership_status(end, today)}
+
+
+def renew_membership(name, months, today=None):
+    """Extend membership by ``months`` from today or the current end date, whichever is later."""
+    try:
+        months = int(months)
+    except (TypeError, ValueError):
+        raise ValidationError("months must be an integer") from None
+    if not 1 <= months <= 24:
+        raise ValidationError("months must be between 1 and 24")
+    today = today or date.today()
+    current = get_client(name).get("membership_end")
+    start = max(today, date.fromisoformat(current)) if current else today
+    new_end = date.fromordinal(start.toordinal() + months * MEMBERSHIP_DAYS_PER_MONTH).isoformat()
+    db = get_db()
+    db.execute("UPDATE clients SET membership_end = ? WHERE name = ?", (new_end, name))
+    db.commit()
+    return get_membership(name, today)
+
+
+def dashboard_stats(today=None):
+    today = today or date.today()
+    db = get_db()
+    ends = [r[0] for r in db.execute("SELECT membership_end FROM clients").fetchall()]
+    statuses = [membership_status(e, today) for e in ends]
+    week_ahead = today.toordinal() + 7
+    expiring = sum(1 for e in ends if e and today.toordinal() <= date.fromisoformat(e).toordinal() <= week_ahead)
+    avg = db.execute("SELECT AVG(adherence) FROM progress").fetchone()[0]
+    week_start = date.fromordinal(today.toordinal() - today.weekday()).isoformat()
+    workouts_week = db.execute("SELECT COUNT(*) FROM workouts WHERE date >= ?", (week_start,)).fetchone()[0]
+    by_program = {r[0]: r[1] for r in db.execute(
+        "SELECT program, COUNT(*) FROM clients GROUP BY program ORDER BY program").fetchall()}
+    return {
+        "total_clients": len(ends),
+        "active_members": statuses.count("Active"),
+        "expired_members": statuses.count("Expired"),
+        "expiring_within_7_days": expiring,
+        "average_adherence": round(avg, 1) if avg is not None else 0,
+        "workouts_this_week": workouts_week,
+        "clients_by_program": by_program,
+    }

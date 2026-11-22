@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - ACEest{% endblock %}
+{% block content %}
+<h1>Gym Dashboard</h1>
+<section class="stats">
+  <div class="card stat"><span>{{ stats.total_clients }}</span>Clients</div>
+  <div class="card stat"><span>{{ stats.active_members }}</span>Active members</div>
+  <div class="card stat"><span>{{ stats.expiring_within_7_days }}</span>Expiring in 7 days</div>
+  <div class="card stat"><span>{{ stats.expired_members }}</span>Expired</div>
+  <div class="card stat"><span>{{ stats.average_adherence }}%</span>Avg adherence</div>
+  <div class="card stat"><span>{{ stats.workouts_this_week }}</span>Workouts this week</div>
+</section>
+<section class="grid">
+  <div class="card">
+    <h2>Clients by Program</h2>
+    {% for program, count in stats.clients_by_program.items() %}
+      <div class="bar-row"><span>{{ program }}</span><div class="bar"><div style="width: {{ (100 * count / stats.total_clients)|round|int }}%"></div></div><span>{{ count }}</span></div>
+    {% else %}<p>No clients yet.</p>{% endfor %}
+  </div>
+  <div class="card mono">
+    <h2>Capacity</h2>
+    <p>Members    : {{ stats.active_members }} / {{ site.capacity_users }}</p>
+    <p>Break-even : {{ site.break_even_members }} members</p>
+  </div>
+</section>
+{% endblock %}

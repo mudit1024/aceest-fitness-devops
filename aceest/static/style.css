@@ -27,3 +27,6 @@ form.inline { display: inline; }
 button.link { background: none; margin: 0 0 0 16px; padding: 0; color: #000; font-weight: bold; }
 .narrow { max-width: 380px; margin: 40px auto; }
 .small { font-size: 0.9rem; margin-left: 12px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { text-align: center; color: var(--muted); }
+.stat span { display: block; font-size: 1.8rem; color: var(--gold); font-weight: bold; }
