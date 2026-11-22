@@ -1,0 +1,85 @@
+# NGINX proxy that forwards traffic to the primary and mirrors it to the shadow.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aceest-mirror-config
+  namespace: aceest
+data:
+  default.conf: |
+    upstream primary { server aceest-shadow-primary.aceest.svc.cluster.local:80; }
+    upstream shadow  { server aceest-shadow-candidate.aceest.svc.cluster.local:80; }
+
+    server {
+      listen 8080;
+
+      location = /proxy-health { return 200 "ok"; }
+
+      location / {
+        mirror /__mirror;
+        mirror_request_body on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass http://primary;
+      }
+
+      location = /__mirror {
+        internal;
+        proxy_set_header X-Shadow-Request "true";
+        proxy_connect_timeout 1s;
+        proxy_read_timeout 3s;
+        proxy_pass http://shadow$request_uri;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-mirror-proxy
+  namespace: aceest
+  labels:
+    strategy: shadow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aceest-mirror-proxy
+  template:
+    metadata:
+      labels:
+        app: aceest-mirror-proxy
+        strategy: shadow
+      annotations:
+        # bump to force a restart after editing the ConfigMap
+        config-version: "1"
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /proxy-health, port: http}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 64Mi}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: config
+          configMap:
+            name: aceest-mirror-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-mirror-proxy
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-mirror-proxy
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

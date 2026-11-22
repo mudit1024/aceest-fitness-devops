@@ -1,0 +1,14 @@
+# Primary
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-shadow-primary
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-shadow
+    role: primary
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

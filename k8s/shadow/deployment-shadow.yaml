@@ -1,0 +1,75 @@
+# Shadow: candidate receives a mirrored copy of every request; responses are discarded. It uses its own throw-away database (emptyDir) so mirrored writes never touch production data.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-shadow-candidate
+  namespace: aceest
+  labels:
+    app.kubernetes.io/name: aceest-fitness
+    strategy: shadow
+  annotations:
+    kubernetes.io/change-cause: "initial deploy"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10   # keeps old ReplicaSets so 'kubectl rollout undo' can roll back
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # one extra pod at a time
+      maxUnavailable: 0    # never drop below the desired replica count (zero downtime)
+  selector:
+    matchLabels:
+      app: aceest-shadow
+      role: shadow
+  template:
+    metadata:
+      labels:
+        app: aceest-shadow
+        role: shadow
+        app.kubernetes.io/name: aceest-fitness
+        app.kubernetes.io/part-of: aceest
+        strategy: shadow
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: aceest
+          image: __IMAGE__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: DEPLOY_TRACK
+              value: "shadow"
+            - name: DATABASE_PATH
+              value: /data/aceest.db
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: aceest-secrets, key: SECRET_KEY}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: aceest-secrets, key: ADMIN_PASSWORD}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}

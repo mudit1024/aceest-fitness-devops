@@ -1,0 +1,42 @@
+# Primary ingress -> stable
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aceest-canary
+  namespace: aceest
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: canary.__DOMAIN__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aceest-canary-stable
+                port:
+                  number: 80
+---
+# Canary ingress: percentage of requests sent to the candidate (raised step by step by scripts/deploy.sh)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aceest-canary-candidate
+  namespace: aceest
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "0"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: canary.__DOMAIN__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aceest-canary-candidate
+                port:
+                  number: 80

@@ -1,0 +1,14 @@
+# LIVE service. Switching traffic = patching spec.selector.slot (blue <-> green).
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-bg
+  namespace: aceest
+spec:
+  selector:
+    app: aceest-bg
+    slot: blue
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

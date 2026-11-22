@@ -1,14 +1,26 @@
-// ACEest Fitness & Gym - CI pipeline
+// ACEest Fitness & Gym - CI/CD pipeline
+//
 // Required Jenkins setup (see jenkins/README.md):
-//   * credentials  : 'dockerhub-creds' (username/password or token)
+//   * credentials  : 'dockerhub-creds' (username + access token)
+//                    'kubeconfig'      (secret file for the Minikube / cloud cluster)
 //   * SonarQube    : server named 'SonarQube' + scanner tool named 'SonarScanner'
+//   * global env   : DOCKERHUB_USER (Docker Hub account / namespace)
 pipeline {
     agent any
+
+    parameters {
+        choice(name: 'DEPLOY_STRATEGY',
+               choices: ['rolling', 'blue-green', 'canary', 'ab-testing', 'shadow', 'all', 'none'],
+               description: 'Deployment strategy used for this release (main branch only)')
+        booleanParam(name: 'ROLLBACK_ONLY', defaultValue: false,
+                     description: 'Skip the build and roll the selected strategy back to its last stable version')
+    }
 
     options {
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
         disableConcurrentBuilds()
+        timeout(time: 45, unit: 'MINUTES')
     }
 
     triggers {
@@ -22,7 +34,17 @@ pipeline {
     }
 
     stages {
+        stage('Rollback') {
+            when { expression { params.ROLLBACK_ONLY } }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh "bash scripts/rollback.sh ${params.DEPLOY_STRATEGY}"
+                }
+            }
+        }
+
         stage('Checkout') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 checkout scm
                 script {
@@ -35,6 +57,7 @@ pipeline {
         }
 
         stage('Install') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh '''
                     python3 -m venv "$VENV"
@@ -44,12 +67,14 @@ pipeline {
         }
 
         stage('Lint') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh 'mkdir -p reports && "$VENV/bin/flake8" --tee --output-file=reports/flake8.txt'
             }
         }
 
         stage('Unit Tests') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh '''
                     mkdir -p reports
@@ -63,6 +88,7 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh "${tool 'SonarScanner'}/bin/sonar-scanner -Dsonar.projectVersion=${env.APP_VERSION}"
@@ -71,6 +97,7 @@ pipeline {
         }
 
         stage('Quality Gate') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
@@ -79,6 +106,7 @@ pipeline {
         }
 
         stage('Build Artifact') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh '''
                     mkdir -p dist
@@ -90,6 +118,7 @@ pipeline {
         }
 
         stage('Docker Build') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh '''
                     docker build --target test    -t aceest-fitness-test:${IMAGE_TAG} .
@@ -100,6 +129,7 @@ pipeline {
         }
 
         stage('Test In Container') {
+            when { expression { !params.ROLLBACK_ONLY } }
             steps {
                 sh '''
                     mkdir -p reports
@@ -112,7 +142,7 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
-            when { branch 'main' }
+            when { allOf { expression { isMainBranch() }; expression { !params.ROLLBACK_ONLY } } }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                                                   usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
@@ -124,6 +154,23 @@ pipeline {
                         docker push ${IMAGE_REPO}:latest
                     '''
                 }
+                sh 'echo "${IMAGE_REPO}:${IMAGE_TAG}" > dist/image.txt'
+                archiveArtifacts artifacts: 'dist/image.txt', fingerprint: true
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when {
+                allOf {
+                    expression { isMainBranch() }
+                    expression { !params.ROLLBACK_ONLY && params.DEPLOY_STRATEGY != 'none' }
+                }
+            }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    // deploy.sh smoke-tests the release and rolls back automatically on failure
+                    sh "bash scripts/deploy.sh ${params.DEPLOY_STRATEGY} ${env.IMAGE_REPO}:${env.IMAGE_TAG}"
+                }
             }
         }
     }
@@ -133,5 +180,16 @@ pipeline {
             archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/**'
             sh 'docker logout || true'
         }
+        success {
+            echo "Build ${currentBuild.displayName} succeeded"
+        }
+        failure {
+            echo "Build ${currentBuild.displayName} failed - see stage logs; deployments are rolled back by scripts/deploy.sh"
+        }
     }
+}
+
+// Works for both multibranch jobs (BRANCH_NAME) and plain pipeline jobs (GIT_BRANCH).
+def isMainBranch() {
+    return env.BRANCH_NAME == 'main' || (env.GIT_BRANCH ?: '') ==~ /(origin\/)?main/
 }

@@ -1,0 +1,19 @@
+# Users reach the mirror proxy, never the shadow directly
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aceest-shadow
+  namespace: aceest
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shadow.__DOMAIN__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aceest-mirror-proxy
+                port:
+                  number: 80
