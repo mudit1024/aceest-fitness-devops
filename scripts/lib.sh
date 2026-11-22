@@ -27,6 +27,7 @@ apply_dir() {
   local dir="$1" image="$2" domain
   domain="$(ingress_domain)"
   for f in "${K8S_DIR}/${dir}"/*.yaml; do
+    echo "---"   # document separator: files must not merge into one object
     sed -e "s#__IMAGE__#${image}#g" -e "s#__DOMAIN__#${domain}#g" "$f"
   done | kubectl apply -f -
 }

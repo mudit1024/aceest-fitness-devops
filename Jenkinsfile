@@ -46,8 +46,9 @@ pipeline {
         stage('Checkout') {
             when { expression { !params.ROLLBACK_ONLY } }
             steps {
-                checkout scm
                 script {
+                    def scmVars   = checkout scm
+                    env.GIT_BRANCH = scmVars.GIT_BRANCH ?: env.GIT_BRANCH
                     env.APP_VERSION = readFile('VERSION').trim()
                     env.GIT_SHORT   = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     env.IMAGE_TAG   = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
@@ -131,9 +132,18 @@ pipeline {
         stage('Test In Container') {
             when { expression { !params.ROLLBACK_ONLY } }
             steps {
+                // The Docker daemon may not see the Jenkins workspace path (Jenkins in a container),
+                // so the JUnit report is copied out of the test container instead of bind-mounted.
                 sh '''
                     mkdir -p reports
-                    docker run --rm -v "$WORKSPACE/reports:/app/reports" aceest-fitness-test:${IMAGE_TAG}
+                    docker rm -f aceest-test-${BUILD_NUMBER} >/dev/null 2>&1 || true
+                    set +e
+                    docker run --name aceest-test-${BUILD_NUMBER} aceest-fitness-test:${IMAGE_TAG}
+                    rc=$?
+                    set -e
+                    docker cp aceest-test-${BUILD_NUMBER}:/app/reports/junit-container.xml reports/junit-container.xml || true
+                    docker rm -f aceest-test-${BUILD_NUMBER} >/dev/null
+                    exit $rc
                 '''
             }
             post {
