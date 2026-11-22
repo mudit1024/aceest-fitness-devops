@@ -63,6 +63,14 @@ SCHEMA = [
         bodyfat REAL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        plan_json TEXT NOT NULL
+    )
+    """,
 ]
 
 

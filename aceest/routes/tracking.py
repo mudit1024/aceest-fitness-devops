@@ -1,9 +1,11 @@
 """Body metrics, workout logging, BMI and client summary (from release 2.2)."""
-from flask import Blueprint, abort, flash, jsonify, redirect, request, url_for
+from flask import Blueprint, Response, abort, flash, jsonify, redirect, request, url_for
 
 from aceest import models
 from aceest.auth import require_login
 from aceest.fitness import ValidationError, calculate_bmi
+from aceest.generator import generate_plan
+from aceest.reports import build_client_report
 
 bp = Blueprint("tracking", __name__)
 bp.before_request(require_login)
@@ -105,3 +107,53 @@ def api_summary(name):
     if summary is None:
         return _not_found()
     return jsonify(summary)
+
+
+# ---------- programme generator & PDF report (release 3.1) ----------
+def _generate_and_save(name, level):
+    client = models.get_client(name)
+    return models.save_plan(name, generate_plan(client["program"], level))
+
+
+@bp.route("/clients/<name>/plan", methods=["POST"])
+def plan_form(name):
+    _client_or_404(name)
+    try:
+        _generate_and_save(name, request.form.get("level"))
+        flash("Workout plan generated", "info")
+    except ValidationError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("clients.client_page", name=name))
+
+
+@bp.route("/clients/<name>/report.pdf", methods=["GET"])
+def client_report(name):
+    summary = models.client_summary(name)
+    if summary is None:
+        abort(404)
+    pdf = build_client_report(summary, models.latest_plan(name))
+    safe_name = "".join(ch for ch in name if ch.isalnum() or ch in "-_") or "client"
+    return Response(pdf, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.pdf"'})
+
+
+@bp.route("/api/clients/<name>/plan", methods=["GET"])
+def api_latest_plan(name):
+    if models.get_client(name) is None:
+        return _not_found()
+    plan = models.latest_plan(name)
+    if plan is None:
+        return jsonify({"error": "no plan generated yet"}), 404
+    return jsonify(plan)
+
+
+@bp.route("/api/clients/<name>/plan", methods=["POST"])
+def api_generate_plan(name):
+    if models.get_client(name) is None:
+        return _not_found()
+    payload = request.get_json(silent=True) or {}
+    try:
+        plan = _generate_and_save(name, payload.get("level"))
+    except ValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(plan), 201

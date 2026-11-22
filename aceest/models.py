@@ -1,5 +1,6 @@
 """Data access functions for clients and their weekly progress."""
-from datetime import date
+import json
+from datetime import date, datetime, timezone
 
 from aceest.db import get_db
 from aceest.fitness import WORKOUT_TYPES, ValidationError, estimate_calories, validate_adherence
@@ -76,6 +77,7 @@ def delete_client(name):
     db.execute("DELETE FROM progress WHERE client_name = ?", (name,))
     db.execute("DELETE FROM workouts WHERE client_name = ?", (name,))
     db.execute("DELETE FROM metrics WHERE client_name = ?", (name,))
+    db.execute("DELETE FROM plans WHERE client_name = ?", (name,))
     cur = db.execute("DELETE FROM clients WHERE name = ?", (name,))
     db.commit()
     return cur.rowcount > 0
@@ -214,3 +216,24 @@ def client_summary(name):
         "training_minutes": total_minutes,
         "last_metric": metrics[-1] if metrics else None,
     }
+
+
+# ---------- generated plans ----------
+def save_plan(name, plan):
+    created = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    db = get_db()
+    db.execute(
+        "INSERT INTO plans (client_name, created_at, plan_json) VALUES (?, ?, ?)",
+        (name, created, json.dumps(plan)),
+    )
+    db.commit()
+    return {**plan, "created_at": created}
+
+
+def latest_plan(name):
+    row = get_db().execute(
+        "SELECT created_at, plan_json FROM plans WHERE client_name = ? ORDER BY id DESC LIMIT 1", (name,)
+    ).fetchone()
+    if row is None:
+        return None
+    return {**json.loads(row["plan_json"]), "created_at": row["created_at"]}

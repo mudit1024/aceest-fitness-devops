@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ client.name }} - ACEest{% endblock %}
 {% block content %}
-<h1>{{ client.name }}</h1>
+<h1>{{ client.name }} <a class="small" href="{{ url_for('tracking.client_report', name=client.name) }}">Download PDF report</a></h1>
 <section class="grid">
   <div class="card mono">
     <h2>Client Profile</h2>
@@ -74,6 +74,21 @@
         <input aria-label="Weight" name="exercise_weight" type="number" step="0.5" placeholder="kg">
       </div>
       <button type="submit">Log Workout</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Generated Training Plan</h2>
+    {% if plan %}
+    <p class="muted">{{ plan.level|title }} &middot; {{ plan.focus }} &middot; {{ plan.days }} days/week &middot; {{ plan.created_at }}</p>
+    <table><thead><tr><th>Day</th><th>Exercise</th><th>Sets</th><th>Reps</th></tr></thead><tbody>
+      {% for item in plan.plan %}<tr><td>{{ item.day }}</td><td>{{ item.exercise }}</td><td>{{ item.sets }}</td><td>{{ item.reps }}</td></tr>{% endfor %}
+    </tbody></table>
+    {% else %}<p>No plan generated yet.</p>{% endif %}
+    <form method="post" action="{{ url_for('tracking.plan_form', name=client.name) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="level">Experience level</label>
+      <select id="level" name="level">{% for lvl in levels %}<option value="{{ lvl }}">{{ lvl|title }}</option>{% endfor %}</select>
+      <button type="submit">Generate Plan</button>
     </form>
   </div>
   {% if program %}
