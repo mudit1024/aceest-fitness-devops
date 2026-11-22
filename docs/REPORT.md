@@ -2,7 +2,7 @@
 
 Introduction to DevOps (CSIZG514/SEZG514), Assignment 2
 
-Student: ____________________   ID: ____________________   GitHub: ____________________
+Student: Mudit Kumar Bhatnagar   ID: 2025TM93024   GitHub: https://github.com/mudit1024/aceest-fitness-devops
 
 ## 1. CI/CD Architecture Overview
 
