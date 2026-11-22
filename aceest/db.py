@@ -88,9 +88,12 @@ def _migrate(conn):
             conn.execute(statement)
 
 
+BUSY_TIMEOUT_SECONDS = 30
+
+
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(current_app.config["DATABASE_PATH"])
+        g.db = sqlite3.connect(current_app.config["DATABASE_PATH"], timeout=BUSY_TIMEOUT_SECONDS)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
@@ -103,14 +106,28 @@ def close_db(_exc=None):
 
 
 def init_db(app):
-    """Create the database file and tables if they do not exist yet."""
+    """Create tables, apply migrations and seed the admin user.
+
+    Several processes can start at the same time (gunicorn workers, or pods of
+    different releases sharing one volume during a rollout). ``BEGIN IMMEDIATE``
+    takes SQLite's write lock up front so initialisation runs one process at a
+    time; the others wait and then find everything already in place.
+    """
     path = Path(app.config["DATABASE_PATH"])
     path.parent.mkdir(parents=True, exist_ok=True)
     from aceest.auth import seed_admin
 
-    with sqlite3.connect(path) as conn:
+    conn = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS, isolation_level=None)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
         for statement in SCHEMA:
             conn.execute(statement)
         _migrate(conn)
         seed_admin(conn, app)
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.close()
     app.teardown_appcontext(close_db)

@@ -52,7 +52,7 @@ def seed_admin(conn, app):
         password = secrets.token_urlsafe(12)
         log.warning("ADMIN_PASSWORD not set - generated one-time admin password: %s", password)
     conn.execute(
-        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'Admin')",
+        "INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, 'Admin')",
         (username, generate_password_hash(password)),
     )
 
