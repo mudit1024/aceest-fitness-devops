@@ -14,7 +14,7 @@ def create_app(config_object=Config, **overrides):
     app.config.update(overrides)
 
     from aceest import auth, db
-    from aceest.routes import clients, main, tracking
+    from aceest.routes import clients, main, membership, tracking
 
     csrf.init_app(app)
     db.init_db(app)
@@ -22,6 +22,7 @@ def create_app(config_object=Config, **overrides):
     app.register_blueprint(auth.bp)
     app.register_blueprint(clients.bp)
     app.register_blueprint(tracking.bp)
+    app.register_blueprint(membership.bp)
 
     @app.context_processor
     def inject_build_info():
