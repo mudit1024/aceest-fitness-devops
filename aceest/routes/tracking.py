@@ -2,9 +2,11 @@
 from flask import Blueprint, abort, flash, jsonify, redirect, request, url_for
 
 from aceest import models
+from aceest.auth import require_login
 from aceest.fitness import ValidationError, calculate_bmi
 
 bp = Blueprint("tracking", __name__)
+bp.before_request(require_login)
 
 
 def _client_or_404(name):

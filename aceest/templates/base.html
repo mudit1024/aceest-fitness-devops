@@ -15,6 +15,14 @@
       <a href="{{ url_for('main.calculator') }}">Calculator</a>
       <a href="{{ url_for('clients.clients_page') }}">Clients</a>
       {% endblock %}
+      {% if current_user %}
+        <form class="inline" method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="link" type="submit">Logout {{ current_user }} ({{ current_role }})</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Login</a>
+      {% endif %}
     </nav>
   </header>
   <main class="container">

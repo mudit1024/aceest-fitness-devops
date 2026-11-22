@@ -1,5 +1,5 @@
 """ACEest Fitness & Gym - Flask application package."""
-from flask import Flask
+from flask import Flask, session
 from flask_wtf.csrf import CSRFProtect
 
 from aceest.config import Config
@@ -13,12 +13,13 @@ def create_app(config_object=Config, **overrides):
     app.config.from_object(config_object)
     app.config.update(overrides)
 
-    from aceest import db
+    from aceest import auth, db
     from aceest.routes import clients, main, tracking
 
     csrf.init_app(app)
     db.init_db(app)
     app.register_blueprint(main.bp)
+    app.register_blueprint(auth.bp)
     app.register_blueprint(clients.bp)
     app.register_blueprint(tracking.bp)
 
@@ -27,6 +28,8 @@ def create_app(config_object=Config, **overrides):
         return {
             "app_version": app.config["APP_VERSION"],
             "deploy_track": app.config["DEPLOY_TRACK"],
+            "current_user": session.get("user"),
+            "current_role": session.get("role"),
         }
 
     return app
