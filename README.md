@@ -124,3 +124,15 @@ The ingress hosts use `nip.io` (`<name>.<minikube-ip>.nip.io`), so no hosts-file
 | Shadow | `shadow.<domain>` | NGINX proxy serves users from the primary and mirrors every request to the shadow, which has its own throw-away database; shadow 5xx errors fail the release | undo shadow |
 
 Check which version and track answered a request with `curl http://<host>/version`.
+
+### Live environment (Minikube on the build machine)
+
+* Docker Hub: <https://hub.docker.com/r/bmudit/aceest-fitness> (tags `1.0.0` … `3.2.2`, `latest` and per-build `3.2.2-<build>`)
+* Jenkins job `aceest-fitness-devops`: build #4 released `3.2.2-4` through all five strategies
+* With Docker Desktop on Windows the Minikube IP is not reachable from the host. Expose the ingress controller instead:
+
+  ```bash
+  kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8088:80
+  ```
+
+  then open `http://rolling.127.0.0.1.nip.io:8088`, `bluegreen.…`, `bluegreen-preview.…`, `canary.…`, `ab.…` and `shadow.…` (same port). Alternatively run `minikube tunnel` from an administrator terminal and drop `:8088`.

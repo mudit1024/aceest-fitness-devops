@@ -8,7 +8,9 @@
 | Scanner | SonarScanner CLI 11.1, configured by `sonar-project.properties` |
 | Quality gate | **Sonar way: PASSED** |
 
-The raw API exports are in this folder: `measures.json`, `quality-gate.json`, `quality-gate-definition.json` and `files.json`.
+The raw API exports are in this folder: `measures.json`, `quality-gate.json` and `analyses.json` (exported after Jenkins builds #2 to #4), plus `quality-gate-definition.json` and `files.json`.
+
+The Jenkins pipeline analyses every build. Its latest analysis (build #4, Python 3.14 agent) also **passed** the gate: 0 bugs, 0 vulnerabilities, 0 code smells, 0 hotspots, 98.6 % coverage. The figures below come from the detailed analysis of 3.2.2 in the Python 3.12 test container.
 
 ## Overall result
 
