@@ -1,9 +1,10 @@
 # Jenkins controller with the tools the ACEest pipeline needs:
-# Python 3 (pytest / flake8), Docker CLI (image builds), kubectl (deployments) and bash (deploy scripts).
+# Python 3 (pytest / flake8), Docker CLI (image builds), kubectl (deployments), bash (deploy scripts)
+# and Node.js (needed by SonarQube to analyse JavaScript/CSS inside the HTML templates).
 FROM jenkins/jenkins:2.580.2-alpine-jdk21
 
 USER root
-RUN apk add --no-cache python3 py3-pip bash curl ca-certificates
+RUN apk add --no-cache python3 py3-pip bash curl ca-certificates nodejs
 
 COPY --from=docker:27.4-cli /usr/local/bin/docker /usr/local/bin/docker
 RUN curl -fsSLo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl \
