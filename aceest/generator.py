@@ -3,15 +3,17 @@ import secrets
 
 from aceest.fitness import ValidationError
 
+FULL_BODY = "Full Body"
+
 EXERCISE_POOL = {
     "Strength": ["Squat", "Deadlift", "Bench Press", "Overhead Press", "Pull-Up", "Barbell Row"],
     "Hypertrophy": ["Leg Press", "Incline Dumbbell Press", "Lat Pulldown", "Lateral Raise",
                     "Bicep Curl", "Tricep Extension"],
     "Conditioning": ["Running", "Cycling", "Rowing", "Burpees", "Jump Rope", "Kettlebell Swings"],
-    "Full Body": ["Push-Up", "Pull-Up", "Lunge", "Plank", "Dumbbell Row", "Dumbbell Press"],
+    FULL_BODY: ["Push-Up", "Pull-Up", "Lunge", "Plank", "Dumbbell Row", "Dumbbell Press"],
 }
 
-PROGRAM_FOCUS = {"FL": "Conditioning", "MG": "Hypertrophy", "BG": "Full Body"}
+PROGRAM_FOCUS = {"FL": "Conditioning", "MG": "Hypertrophy", "BG": FULL_BODY}
 
 LEVELS = {
     "beginner": {"sets": (2, 3), "reps": (8, 12), "days": 3},
@@ -33,7 +35,7 @@ def generate_plan(program_code, level, rng=None):
     if level_key not in LEVELS:
         raise ValidationError("level must be one of " + ", ".join(LEVELS))
     settings = LEVELS[level_key]
-    focus = PROGRAM_FOCUS.get((program_code or "").upper(), "Full Body")
+    focus = PROGRAM_FOCUS.get((program_code or "").upper(), FULL_BODY)
     per_day = 3 if settings["days"] < 4 else 4
 
     plan = []

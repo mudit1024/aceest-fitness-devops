@@ -99,14 +99,18 @@ def _safe_next(target):
 
 
 # ---------- routes ----------
-@bp.route("/login", methods=["GET", "POST"])
+@bp.route("/login", methods=["GET"])
 def login():
-    if request.method == "POST":
-        user = authenticate(request.form.get("username"), request.form.get("password"))
-        if user:
-            _start_session(user)
-            return redirect(_safe_next(request.args.get("next")))
-        flash("Invalid credentials", "error")
+    return render_template("login.html")
+
+
+@bp.route("/login", methods=["POST"])
+def login_submit():
+    user = authenticate(request.form.get("username"), request.form.get("password"))
+    if user:
+        _start_session(user)
+        return redirect(_safe_next(request.args.get("next")))
+    flash("Invalid credentials", "error")
     return render_template("login.html")
 
 

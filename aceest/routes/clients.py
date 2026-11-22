@@ -1,7 +1,8 @@
 """Client management: HTML pages and JSON API."""
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, render_template, request
 
 from aceest import models
+from aceest.routes import back_to_client, client_not_found
 from aceest.auth import require_login, role_required
 from aceest.fitness import WORKOUT_TYPES, ValidationError, calculate_bmi
 from aceest.generator import LEVELS
@@ -12,17 +13,24 @@ bp.before_request(require_login)
 
 
 # ---------- HTML ----------
-@bp.route("/clients", methods=["GET", "POST"])
-def clients_page():
-    if request.method == "POST":
-        try:
-            client = models.save_client(request.form)
-        except ValidationError as exc:
-            flash(str(exc), "error")
-        else:
-            flash(f"Client {client['name']} saved", "info")
-            return redirect(url_for("clients.client_page", name=client["name"]))
+def _render_clients():
     return render_template("clients.html", clients=models.list_clients(), programs=list_programs())
+
+
+@bp.route("/clients", methods=["GET"])
+def clients_page():
+    return _render_clients()
+
+
+@bp.route("/clients", methods=["POST"])
+def save_client_form():
+    try:
+        client = models.save_client(request.form)
+    except ValidationError as exc:
+        flash(str(exc), "error")
+        return _render_clients()
+    flash(f"Client {client['name']} saved", "info")
+    return back_to_client(client["name"])
 
 
 @bp.route("/clients/<name>", methods=["GET"])
@@ -61,7 +69,7 @@ def client_progress_form(name):
         flash("Weekly progress logged", "info")
     except ValidationError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("clients.client_page", name=name))
+    return back_to_client(name)
 
 
 # ---------- JSON API ----------
@@ -83,7 +91,7 @@ def api_save_client():
 def api_get_client(name):
     client = models.get_client(name)
     if client is None:
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     return jsonify(client)
 
 
@@ -91,21 +99,21 @@ def api_get_client(name):
 @role_required("Admin")
 def api_delete_client(name):
     if not models.delete_client(name):
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     return "", 204
 
 
 @bp.route("/api/clients/<name>/progress", methods=["GET"])
 def api_list_progress(name):
     if models.get_client(name) is None:
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     return jsonify(models.list_progress(name))
 
 
 @bp.route("/api/clients/<name>/progress", methods=["POST"])
 def api_add_progress(name):
     if models.get_client(name) is None:
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     payload = request.get_json(silent=True) or {}
     try:
         entry = models.add_progress(name, payload.get("adherence"), payload.get("week"))

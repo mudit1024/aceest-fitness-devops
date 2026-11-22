@@ -34,24 +34,27 @@ def api_program(code):
     return jsonify(program)
 
 
-@bp.route("/calculator", methods=["GET", "POST"])
+@bp.route("/calculator", methods=["GET"])
 def calculator():
+    return render_template("calculator.html", programs=list_programs(), form={}, result=None)
+
+
+@bp.route("/calculator", methods=["POST"])
+def calculate():
+    form = request.form
     result = None
-    form = request.form if request.method == "POST" else {}
-    if request.method == "POST":
-        try:
-            name = form.get("name", "").strip()
-            if not name:
-                raise ValidationError("name is required")
-            result = {
-                "name": name,
-                "program": get_program(form.get("program")),
-                "calories": estimate_calories(form.get("weight"), form.get("program")),
-                "adherence": validate_adherence(form.get("adherence", 0)),
-            }
-        except ValidationError as exc:
-            flash(str(exc), "error")
-            result = None
+    try:
+        name = form.get("name", "").strip()
+        if not name:
+            raise ValidationError("name is required")
+        result = {
+            "name": name,
+            "program": get_program(form.get("program")),
+            "calories": estimate_calories(form.get("weight"), form.get("program")),
+            "adherence": validate_adherence(form.get("adherence", 0)),
+        }
+    except ValidationError as exc:
+        flash(str(exc), "error")
     return render_template("calculator.html", programs=list_programs(), form=form, result=result)
 
 
