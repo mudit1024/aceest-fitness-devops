@@ -3,6 +3,7 @@
 {% block content %}
 <section class="grid">
   <form class="card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Client Profile</h2>
     <label for="name">Name</label><input id="name" name="name" value="{{ form.name or '' }}" required>
     <label for="age">Age</label><input id="age" name="age" type="number" min="1" max="120" value="{{ form.age or '' }}">
