@@ -1,7 +1,8 @@
 """Body metrics, workout logging, BMI and client summary (from release 2.2)."""
-from flask import Blueprint, Response, abort, flash, jsonify, redirect, request, url_for
+from flask import Blueprint, Response, abort, flash, jsonify, request
 
 from aceest import models
+from aceest.routes import back_to_client, client_not_found
 from aceest.auth import require_login
 from aceest.fitness import ValidationError, calculate_bmi
 from aceest.generator import generate_plan
@@ -19,7 +20,7 @@ def _client_or_404(name):
 
 
 def _not_found():
-    return jsonify({"error": "client not found"}), 404
+    return client_not_found()
 
 
 # ---------- HTML form handlers ----------
@@ -31,7 +32,7 @@ def metrics_form(name):
         flash("Body metrics logged", "info")
     except ValidationError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("clients.client_page", name=name))
+    return back_to_client(name)
 
 
 @bp.route("/clients/<name>/workouts", methods=["POST"])
@@ -50,21 +51,21 @@ def workouts_form(name):
         flash("Workout logged", "info")
     except ValidationError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("clients.client_page", name=name))
+    return back_to_client(name)
 
 
 # ---------- JSON API ----------
 @bp.route("/api/clients/<name>/metrics", methods=["GET"])
 def api_list_metrics(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     return jsonify(models.list_metrics(name))
 
 
 @bp.route("/api/clients/<name>/metrics", methods=["POST"])
 def api_add_metric(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     try:
         metric = models.add_metric(name, request.get_json(silent=True) or {})
     except ValidationError as exc:
@@ -75,14 +76,14 @@ def api_add_metric(name):
 @bp.route("/api/clients/<name>/workouts", methods=["GET"])
 def api_list_workouts(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     return jsonify(models.list_workouts(name))
 
 
 @bp.route("/api/clients/<name>/workouts", methods=["POST"])
 def api_add_workout(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     try:
         workout = models.add_workout(name, request.get_json(silent=True) or {})
     except ValidationError as exc:
@@ -94,7 +95,7 @@ def api_add_workout(name):
 def api_bmi(name):
     client = models.get_client(name)
     if client is None:
-        return _not_found()
+        return client_not_found()
     try:
         return jsonify(calculate_bmi(client["height"], client["weight"]))
     except ValidationError:
@@ -105,7 +106,7 @@ def api_bmi(name):
 def api_summary(name):
     summary = models.client_summary(name)
     if summary is None:
-        return _not_found()
+        return client_not_found()
     return jsonify(summary)
 
 
@@ -123,7 +124,7 @@ def plan_form(name):
         flash("Workout plan generated", "info")
     except ValidationError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("clients.client_page", name=name))
+    return back_to_client(name)
 
 
 @bp.route("/clients/<name>/report.pdf", methods=["GET"])
@@ -140,7 +141,7 @@ def client_report(name):
 @bp.route("/api/clients/<name>/plan", methods=["GET"])
 def api_latest_plan(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     plan = models.latest_plan(name)
     if plan is None:
         return jsonify({"error": "no plan generated yet"}), 404
@@ -150,7 +151,7 @@ def api_latest_plan(name):
 @bp.route("/api/clients/<name>/plan", methods=["POST"])
 def api_generate_plan(name):
     if models.get_client(name) is None:
-        return _not_found()
+        return client_not_found()
     payload = request.get_json(silent=True) or {}
     try:
         plan = _generate_and_save(name, payload.get("level"))

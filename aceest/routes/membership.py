@@ -1,7 +1,8 @@
 """Membership billing and the gym dashboard (release 3.2)."""
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, render_template, request
 
 from aceest import models
+from aceest.routes import back_to_client, client_not_found
 from aceest.auth import require_login
 from aceest.fitness import ValidationError
 from aceest.programs import SITE_METRICS
@@ -24,7 +25,7 @@ def renew_form(name):
         flash(f"Membership renewed until {result['membership_end']}", "info")
     except ValidationError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("clients.client_page", name=name))
+    return back_to_client(name)
 
 
 @bp.route("/api/dashboard", methods=["GET"])
@@ -36,14 +37,14 @@ def api_dashboard():
 def api_membership(name):
     membership = models.get_membership(name)
     if membership is None:
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     return jsonify(membership)
 
 
 @bp.route("/api/clients/<name>/membership", methods=["POST"])
 def api_renew(name):
     if models.get_client(name) is None:
-        return jsonify({"error": "client not found"}), 404
+        return client_not_found()
     payload = request.get_json(silent=True) or {}
     try:
         return jsonify(models.renew_membership(name, payload.get("months"))), 200
