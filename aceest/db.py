@@ -6,6 +6,13 @@ from flask import current_app, g
 
 SCHEMA = [
     """
+    CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS clients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL,
@@ -77,7 +84,10 @@ def init_db(app):
     """Create the database file and tables if they do not exist yet."""
     path = Path(app.config["DATABASE_PATH"])
     path.parent.mkdir(parents=True, exist_ok=True)
+    from aceest.auth import seed_admin
+
     with sqlite3.connect(path) as conn:
         for statement in SCHEMA:
             conn.execute(statement)
+        seed_admin(conn, app)
     app.teardown_appcontext(close_db)

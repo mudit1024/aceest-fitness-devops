@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Login - ACEest{% endblock %}
+{% block content %}
+<form class="card narrow" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>ACEest Login</h2>
+  <label for="username">Username</label><input id="username" name="username" autocomplete="username" required>
+  <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+  <button type="submit">Login</button>
+</form>
+{% endblock %}

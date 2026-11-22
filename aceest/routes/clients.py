@@ -2,10 +2,12 @@
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from aceest import models
+from aceest.auth import require_login, role_required
 from aceest.fitness import WORKOUT_TYPES, ValidationError, calculate_bmi
 from aceest.programs import get_program, list_programs
 
 bp = Blueprint("clients", __name__)
+bp.before_request(require_login)
 
 
 # ---------- HTML ----------
@@ -82,6 +84,7 @@ def api_get_client(name):
 
 
 @bp.route("/api/clients/<name>", methods=["DELETE"])
+@role_required("Admin")
 def api_delete_client(name):
     if not models.delete_client(name):
         return jsonify({"error": "client not found"}), 404
