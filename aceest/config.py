@@ -18,8 +18,5 @@ class Config:
     # Label used by the deployment strategies (blue/green, stable/canary, A/B)
     DEPLOY_TRACK = os.environ.get("DEPLOY_TRACK") or "stable"
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
+    DATABASE_PATH = os.environ.get("DATABASE_PATH") or str(BASE_DIR / "instance" / "aceest.db")
     TESTING = False
-
-
-class TestConfig(Config):
-    TESTING = True

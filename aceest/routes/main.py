@@ -1,5 +1,6 @@
 """Public pages, programme catalogue and operational endpoints."""
 from flask import Blueprint, abort, current_app, flash, jsonify, render_template, request
+from flask_wtf.csrf import generate_csrf
 
 from aceest.fitness import ValidationError, estimate_calories, validate_adherence
 from aceest.programs import SITE_METRICS, get_program, list_programs
@@ -62,6 +63,12 @@ def api_calories():
     except ValidationError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"program": program.upper(), "calories": calories})
+
+
+@bp.route("/api/csrf-token", methods=["GET"])
+def api_csrf_token():
+    """API clients send this value back in the X-CSRFToken header on writes."""
+    return jsonify({"csrf_token": generate_csrf()})
 
 
 @bp.route("/health", methods=["GET"])

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }} - ACEest{% endblock %}
+{% block content %}
+<h1>{{ client.name }}</h1>
+<section class="grid">
+  <div class="card mono">
+    <h2>Client Profile</h2>
+    <p>Age      : {{ client.age or '-' }}</p>
+    <p>Height   : {{ client.height or '-' }} cm</p>
+    <p>Weight   : {{ client.weight or '-' }} kg</p>
+    <p>Program  : {{ program.name if program else '-' }}</p>
+    <p>Calories : {{ client.calories or '-' }} kcal/day</p>
+    <p>Goals    : {% if client.target_weight %}Target Weight {{ client.target_weight }} kg; {% endif %}{% if client.target_adherence %}Target Adherence {{ client.target_adherence }}%{% endif %}</p>
+  </div>
+  <div class="card">
+    <h2>Weekly Adherence</h2>
+    {% if progress %}
+      {% for p in progress %}
+        <div class="bar-row"><span>{{ p.week }}</span><div class="bar"><div style="width: {{ p.adherence }}%"></div></div><span>{{ p.adherence }}%</span></div>
+      {% endfor %}
+    {% else %}<p>No progress logged yet.</p>{% endif %}
+    <form method="post" action="{{ url_for('clients.client_progress_form', name=client.name) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="adherence">Adherence this week (%)</label>
+      <input id="adherence" name="adherence" type="number" min="0" max="100" required>
+      <button type="submit">Log Progress</button>
+    </form>
+  </div>
+  {% if program %}
+  <div class="card">
+    <h2>Workout</h2>
+    <ul class="plain">{% for line in program.workout %}<li>{{ line }}</li>{% endfor %}</ul>
+    <h2>Diet</h2>
+    <ul class="plain">{% for line in program.diet %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
