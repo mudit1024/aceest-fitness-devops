@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, jsonify, redirect, render_template, r
 from aceest import models
 from aceest.auth import require_login, role_required
 from aceest.fitness import WORKOUT_TYPES, ValidationError, calculate_bmi
+from aceest.generator import LEVELS
 from aceest.programs import get_program, list_programs
 
 bp = Blueprint("clients", __name__)
@@ -43,6 +44,8 @@ def client_page(name):
         progress=models.list_progress(name),
         metrics=models.list_metrics(name),
         workouts=models.list_workouts(name),
+        plan=models.latest_plan(name),
+        levels=LEVELS,
         workout_types=WORKOUT_TYPES,
         programs=list_programs(),
     )

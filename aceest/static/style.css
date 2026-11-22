@@ -26,3 +26,4 @@ table { width: 100%; border-collapse: collapse; } th, td { text-align: left; pad
 form.inline { display: inline; }
 button.link { background: none; margin: 0 0 0 16px; padding: 0; color: #000; font-weight: bold; }
 .narrow { max-width: 380px; margin: 40px auto; }
+.small { font-size: 0.9rem; margin-left: 12px; }
