@@ -100,3 +100,39 @@ def test_migration_upgrades_old_database(tmp_path):
     app = make_app(tmp_path, DATABASE_PATH=str(db_path))
     with app.app_context():
         assert models.get_membership("Legacy")["status"] == "None"
+
+
+def test_concurrent_start_up_on_shared_database(tmp_path):
+    """Regression (3.2.1): several workers/pods initialising one database at once."""
+    import threading
+
+    db_path = str(tmp_path / "shared.db")
+    errors = []
+
+    def start():
+        try:
+            make_app(tmp_path, DATABASE_PATH=db_path)
+        except Exception as exc:  # pragma: no cover - only on regression
+            errors.append(exc)
+
+    threads = [threading.Thread(target=start) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1
+
+
+def test_failed_initialisation_is_rolled_back(tmp_path, monkeypatch):
+    from aceest import auth
+
+    def broken_seed(conn, app):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(auth, "seed_admin", broken_seed)
+    with pytest.raises(RuntimeError):
+        make_app(tmp_path, DATABASE_PATH=str(tmp_path / "broken.db"))
+    with sqlite3.connect(tmp_path / "broken.db") as conn:
+        assert conn.execute("SELECT name FROM sqlite_master WHERE name='users'").fetchone() is None
