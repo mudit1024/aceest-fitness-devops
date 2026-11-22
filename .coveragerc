@@ -1,0 +1,8 @@
+[run]
+source = aceest
+branch = True
+# Relative paths so SonarQube can map coverage from any build directory or container.
+relative_files = True
+
+[report]
+show_missing = True
